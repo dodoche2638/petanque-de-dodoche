@@ -1,0 +1,59 @@
+LA PETANQUE DE DODOCHE
+Historique des versions Android et Windows — jusqu’à la v26
+Édition du 11 novembre 2026
+
+v1 — Détail de cette version non retrouvé.
+v2 — Détail de cette version non retrouvé.
+v3 — Détail de cette version non retrouvé.
+v4 — Détail de cette version non retrouvé.
+
+v5 · Android — Tournoi en équipes avec poules, barrage et phase finale.
+     Tir de précision avec suivi des scores et classement.
+v6 · Android — Ajout du tête-à-tête. Un joueur par ligne à l’inscription.
+     Au tir de précision, choix entre passage à tour de rôle et série complète.
+v7 · Android — Habillage sur le thème de la pétanque, icône et nom
+     « LA PETANQUE DE DODOCHE ».
+v8 · Android — Couleurs bleu et blanc inspirées de l’OM. En tournoi,
+     composition à la mêlée ou par poste. Nouvel onglet Entraînement.
+v9 · Android — Schémas de placement pour les cinq ateliers du tir de
+     précision et illustrations pour les exercices d’entraînement.
+v10 · Android — Ajout d’exercices avec cerceaux et accessoires.
+v11 · Android — Onglet Concours officiel, inscription par QR de licence
+     et tirage des poules identifiées par lettres (A, B, C…).
+v12 · Android et Windows — Choix entre poules équilibrées et poules
+     classiques de quatre avec barrage. Première version Windows retrouvée,
+     distribuée avec un exécutable et une page HTML.
+v13 · Android et Windows — Aperçu du tirage des poules avant la saisie
+     des premiers résultats.
+v14 · Android et Windows — Présentation du tirage sous forme de tableau
+     à branches. Ajout de l’onglet Règlements.
+v15 · Android et Windows — Ajout d’explications consultables hors ligne,
+     notamment pour la Drôme, et consultation de documents depuis l’application.
+v16 · Android et Windows — Lecteur PDF intégré pour afficher les documents
+     de règlement page par page sans passer par la visionneuse Google.
+v17 · Android — Réorganisation du tableau de poules pour les petits écrans :
+     les rencontres se lisent verticalement.
+v18 · Android et Windows — Tableau graphique des phases finales dès leur
+     lancement. Amélioration de la disposition des rencontres et des branches.
+v19 · Android et Windows — Nombre de terrains réglable pour le concours,
+     affectation des matchs aux terrains numérotés et mise en attente.
+v20 · Android et Windows — Formule A-B-C : deux tours de qualification,
+     puis trois tableaux distincts à élimination directe.
+v21 · Android et Windows — Choix entre concours officiel avec licence et
+     non officiel sans licence. Fiches joueurs avec nom et prénom ;
+     recherche des licences déjà enregistrées sur l’appareil.
+v22 · Android et Windows — Estimation de la durée et de l’heure de fin,
+     avec durée moyenne des parties, pauses et nombre de terrains.
+     Option terrains illimités réservée aux concours non officiels.
+v22.1 · Windows — Correction du lanceur exécutable pour ouvrir l’application.
+v23 · Windows — Affichage du tirage dans une seconde fenêtre, actualisée
+     au fil des scores et adaptée à un écran destiné au public.
+v24 · Android et Windows — Correction ou annulation d’un résultat depuis
+     le match, y compris en A-B-C. Contrôle des tours déjà joués lorsqu’une
+     modification change le vainqueur.
+v25 · Android et Windows — Bouton « Archiver les résultats » après la finale.
+     L’onglet Archives permet de relire les matchs ou les vingt tirs de
+     chaque joueur. Export en texte et mise à jour d’une fiche après correction.
+
+v26 · Android et Windows — Marathon sans poules, manches et chrono réglables,
+     saisie du gagnant ou du score, classement et archives.
