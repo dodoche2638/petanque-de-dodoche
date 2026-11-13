@@ -2,6 +2,10 @@
 
 Application de pétanque pour Android et Windows. Elle gère les inscriptions, les poules, les tableaux A-B-C, les terrains et les résultats. Elle propose aussi le tir de précision, les entraînements, les règlements et les archives des concours.
 
+## Version 29
+
+Tournoi et Concours proposent le score détaillé ou le choix du gagnant, puis un cadrage si nécessaire après les poules. Le Marathon permet les inscriptions en tête-à-tête, doublette et triplette.
+
 ## Installer
 
 Dans **Releases**, télécharger l’APK pour Android ou le ZIP Windows. Sous Windows, extraire le ZIP et ouvrir l’exécutable ou Dodoche.html. Les deux ZIP comprennent Historique-des-versions.txt.

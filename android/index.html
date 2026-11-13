@@ -103,7 +103,7 @@ function nameList(host,title,values,changed){
  }
  (values.length?values:['']).forEach(v=>append(v,false));add.onclick=()=>{append('',true);sync()}
 }
-function draw(){if(s.teams)return s.abc?abcPage():tournament();if(key==="official-v1")return officialEntry();
+function drawOrganizer(){if(s.teams)return s.abc?abcPage():tournament();if(key==="official-v1")return officialEntry();
  view.innerHTML='<h2>Inscription au tournoi</h2><label>Formule<select id="casualFormula"><option value="auto">Poules équilibrées</option><option value="abc">A-B-C · deux tours de qualification</option></select></label><label>Format<select id="size"><option value="1">Tête-à-tête</option><option value="2">Doublette</option><option value="3">Triplette</option></select></label>'+(s.size>1?'<label>Composition des équipes<select id="formation"><option value="roles">Par poste</option><option value="melee">À la mêlée</option></select></label>':'')+'<p>'+(melee()?'Inscris tous les joueurs dans la même liste. Les équipes sont tirées au sort pour tout le tournoi.':s.size===1?'Chaque joueur joue en individuel.':'Inscris autant de joueurs à chaque poste.')+'</p><div id="roster"></div><p id="error" role="alert" class="err"></p><button id="start">Lancer le tirage</button>';
  casualFormula.value=s.poolStyle||'auto';casualFormula.onchange=()=>{s.poolStyle=casualFormula.value;save()};size.value=s.size;size.onchange=()=>{s.size=Number(size.value);save();draw()};
  const formation=document.getElementById("formation");if(formation){formation.value=s.drawType||"roles";formation.onchange=()=>{s.drawType=formation.value;save();draw()}}
@@ -179,7 +179,24 @@ lists.forEach(shuffle);s.teams=lists[0].map((_,i)=>lists.map(l=>l[i]))}startPool
 function startPools(n){delete s.archiveId;if(s.poolStyle==='abc'){s.abc={qual:[abcPairs(shuffle(s.teams.map((_,i)=>i)))]};s.courts={};save();draw();return}s.pools=Array.from({length:Math.ceil(n/4)},()=>[]);s.teams.forEach((_,i)=>s.pools[i%s.pools.length].push(i));s.games=s.pools.map(()=>[]);s.rounds=[];s.drawPreview=true;save();draw()}
 const team=i=>s.teams[i].map(esc).join(' / ');
 function scores(p){return p.map(i=>{let w=0,d=0,f=0;for(const g of s.games){if(!g.v||g.a!==i&&g.b!==i)continue;let x=g.v[g.a===i?0:1],y=g.v[g.a===i?1:0];w+=Number(x>y);d+=x-y;f+=x}return {i,w,d,f}}).sort((a,b)=>b.w-a.w||b.d-a.d||b.f-a.f||a.i-b.i)}
-function correctionControls(id,v){
+function winnerButtons(g,id,correct){
+ return '<div data-id="'+id+'"><p>Choisir le gagnant</p>'+[g.a,g.b].map((n,i)=>'<button type="button" data-pick="'+i+'" data-correct="'+correct+'">'+team(n)+'</button>').join(' ')+'</div>'
+}
+function resultText(g,format=team){return g.v[2]==='winner'?'Victoire de '+format(winner(g)):g.v.join(' – ')}
+document.addEventListener('click',e=>{
+ const btn=e.target.closest('[data-pick]');if(!btn)return;
+ const side=Number(btn.dataset.pick),id=btn.parentElement.dataset.id;
+ const value=[1-side,side,'winner'];
+ if(btn.dataset.correct==='true')return reviseScore(id,value);
+ if(!confirm('Confirmer la victoire de '+btn.textContent+' ?'))return;
+ const [kind,j,k]=id.split('-');
+ if(kind==='p')s.games[j][k]=value;
+ else if(kind==='r')s.rounds[j][k].v=value;
+ else abcRows().find(row=>row.id===id).g.v=value;
+ save();draw()
+});
+function correctionControls(id,v,g){
+ if(v[2]==='winner')return '<details data-result="'+id+'"><summary>Corriger ou annuler</summary>'+winnerButtons(g,id,true)+'<button type="button" data-erase>Annuler le résultat</button></details>';
  return '<details data-result="'+id+'"><summary>Corriger ou annuler</summary><label>Score de la première équipe <input type="number" min="0" max="13" value="'+v[0]+'"></label><label>Score de la seconde équipe <input type="number" min="0" max="13" value="'+v[1]+'"></label><button type="button" data-change>Enregistrer la correction</button> <button type="button" data-erase>Annuler le résultat</button></details>'
 }
 function reviseScore(id,value){
@@ -187,7 +204,7 @@ function reviseScore(id,value){
  const rounds=kind==='r'?s.rounds:kind==='q'?s.abc.qual:kind.startsWith('abc')?s.abc.groups[Number(kind.slice(3))].rounds:null;
  const old=rounds?rounds[j][k].v:s.games[j][k];
  if(!old)return;
- if(value&&(!value.every(n=>Number.isInteger(n)&&n>=0&&n<=13)||Math.max(...value)!==13||value[0]===value[1]))return alert('Saisis 13 pour le gagnant et de 0 à 12 pour son adversaire.');
+ if(value&&value[2]!=='winner'&&(!value.every(n=>Number.isInteger(n)&&n>=0&&n<=13)||Math.max(...value)!==13||value[0]===value[1]))return alert('Saisis 13 pour le gagnant et de 0 à 12 pour son adversaire.');
  if(value&&value.every((n,i)=>n===old[i]))return;
  const changesWinner=!value||(value[0]>value[1])!==(old[0]>old[1]);
  let later=[],drop=false;
@@ -201,7 +218,7 @@ function reviseScore(id,value){
   if(later.some(r=>r.some(g=>g.v)))return alert('Un tour suivant a déjà des scores. Annule-les d’abord, en remontant depuis le dernier tour.');
   drop=later.length>0||(kind==='q'&&!!s.abc.groups)
  }
- if(!confirm((value?'Enregistrer le score '+value.join(' à ')+' ?':'Annuler ce résultat et remettre le match à jouer ?')+(drop?' Les tours suivants concernés devront être relancés.':'')))return;
+ if(!confirm((value?.[2]==='winner'?'Confirmer le changement de gagnant ?':value?'Enregistrer le score '+value.join(' à ')+' ?':'Annuler ce résultat et remettre le match à jouer ?')+(drop?' Les tours suivants concernés devront être relancés.':'')))return;
  if(rounds)rounds[j][k].v=value;else s.games[j][k]=value;
  if(changesWinner){
   if(kind==='p'){s.rounds.length=0;delete s.finalPreview}
@@ -217,8 +234,14 @@ document.addEventListener('click',e=>{
  reviseScore(box.dataset.result,btn.hasAttribute('data-erase')?null:Array.from(box.querySelectorAll('input'),n=>n.valueAsNumber))
 });
 
-function match(g,id,locked){if(key==='official-v1'&&s.courtCount&&!locked&&g.b!=null&&!s.courts?.[id])return '<div class="game"><b>En attente de terrain</b><p>'+team(g.a)+' contre '+team(g.b)+'</p></div>';if(g.b==null)return '<p>'+team(g.a)+' · exemptée</p>';return '<div class="game">'+(key==='official-v1'&&!locked&&s.courts?.[id]?'<strong>Terrain '+s.courts[id]+'</strong><br>':'')+'<b>'+team(g.a)+'</b><br>contre '+team(g.b)+(locked?'<p>'+g.v.join(' – ')+'</p>'+correctionControls(id,g.v):'<form data-id="'+id+'"><input aria-label="Score première équipe" type="number" min="0" max="13" required value="'+(g.v?.[0]??'')+'"> – <input aria-label="Score seconde équipe" type="number" min="0" max="13" required value="'+(g.v?.[1]??'')+'"> <button>Valider</button></form>')+'</div>'}
-function advance(ids){let r=[];for(let i=0;i<ids.length;i+=2)r.push({a:ids[i],b:ids[i+1]??null});s.rounds.push(r);s.finalPreview=true;save();draw()}
+function match(g,id,locked){if(key==='official-v1'&&s.courtCount&&!locked&&g.b!=null&&!s.courts?.[id])return '<div class="game"><b>En attente de terrain</b><p>'+team(g.a)+' contre '+team(g.b)+'</p></div>';if(g.b==null)return '<p>'+team(g.a)+(g.cadrage?' · qualifiée directement pour le tour suivant':' · exemptée')+'</p>';return '<div class="game">'+(key==='official-v1'&&!locked&&s.courts?.[id]?'<strong>Terrain '+s.courts[id]+'</strong><br>':'')+'<b>'+team(g.a)+'</b><br>contre '+team(g.b)+(locked?'<p>'+resultText(g)+'</p>'+correctionControls(id,g.v,g):s.resultMode==='winner'?winnerButtons(g,id,false):'<form data-id="'+id+'"><input aria-label="Score première équipe" type="number" min="0" max="13" required value="'+(g.v?.[0]??'')+'"> – <input aria-label="Score seconde équipe" type="number" min="0" max="13" required value="'+(g.v?.[1]??'')+'"> <button>Valider</button></form>')+'</div>'}
+function advance(ids){let r=[];for(let i=0;i<ids.length;i+=2)r.push({a:ids[i],b:ids[i+1]??null});if(!s.rounds.length && ids.length>2){
+ const base=2**Math.floor(Math.log2(ids.length)),played=ids.length-base;
+ if(played){
+  const pairs=shuffle(r),games=pairs.slice(0,played),direct=pairs.slice(played).flatMap(g=>[g.a,g.b]).filter(id=>id!=null);
+  r=Array.from({length:base},(_,i)=>Math.floor((i+1)*played/base)>Math.floor(i*played/base)?{...games.pop(),cadrage:true}:{a:direct.pop(),b:null,cadrage:true});
+ }
+ }s.rounds.push(r);s.finalPreview=true;save();draw()}
 const winner=g=>g.b===null||g.v[0]>g.v[1]?g.a:g.b;
 function poolTree(p, results){
  const games=[], wins={}, losses={};
@@ -246,7 +269,7 @@ function renderDrawPreview(){
  const t=poolTree(p,s.games?.[j]||[]),three=p.length===3, direct=s.teams.length===2;
  const name=i=>i==null?'':team(i);
  const card=(x,y,title,lines,kind='')=>'<div class="branchCard '+kind+'" style="grid-column:'+y+';grid-row:'+x+'"><strong>'+title+'</strong>'+lines.map(a=>'<div>'+a+'</div>').join('')+'</div>';
- const match=(g,a,b)=>[g?.a!=null?name(g.a):a,g?.b!=null?name(g.b):b,...(g?.v?[g.v.join(' – ')]:[])];
+ const match=(g,a,b)=>[g?.a!=null?name(g.a):a,g?.b!=null?name(g.b):b,...(g?.v?[resultText(g)]:[])];
  const g=title=>t.games.find(m=>m.title===title);
  const end=(i,label)=>name(t.qualified[i])||label;
  let body=card(1,1,direct?'Finale':p.length===2?'Classement':'Partie 1',match(t.games[0],name(p[0]),name(p[1])));
@@ -281,13 +304,13 @@ function renderFinalDraw(rounds=s.rounds,title='Tableau de la phase finale',back
    const b=bye?'Exemption':entry(game?.b,right);
    const ref='M'+(1+stages.reduce((n,r)=>n+r.length,0)+i);
    const winnerName=game&&(game.b===null||game.v)?team(winner(game)):bye?(game?a:left?.winnerName):null;
-   const card='<div class="koCard"><strong>'+stageTitle(count)+' · '+ref+'</strong><div>'+a+'<b>'+(game?.v?.[0]??'')+'</b></div><div>'+b+'<b>'+(game?.v?.[1]??'')+'</b></div></div>';
+   const card='<div class="koCard"><strong>'+(game?.cadrage?(bye?'Qualifiée directement':'Cadrage'):stageTitle(count))+' · '+ref+'</strong><div>'+a+'<b>'+(game?.v?.[2]==='winner'?(game.v[0]?'✓':''):(game?.v?.[0]??''))+'</b></div><div>'+b+'<b>'+(game?.v?.[2]==='winner'?(game.v[1]?'✓':''):(game?.v?.[1]??''))+'</b></div></div>';
    stage.push({ref,winnerName,card})
   }
   stages.push(stage);if(count===1)break;count=Math.ceil(count/2)
  }
  const bracket=stages.map((r,j)=>'<div class="koColumn">'+r.map((m,i)=>'<div class="koSlot" style="flex:'+Math.min(2**j,stages[0].length-i*2**j)+'">'+m.card+'</div>').join('')+'</div>').join('');
- const mobile=stages.map((r,j)=>'<section class="koStage"><h3>'+stageTitle(r.length)+'</h3>'+r.map((m,i)=>'<div>'+m.card+(r.length>1?'<small>↳ Vers '+stages[j+1][Math.floor(i/2)].ref+'</small>':'')+'</div>').join('')+'</section>').join('');
+ const mobile=stages.map((r,j)=>'<section class="koStage"><h3>'+(rounds[j]?.[0]?.cadrage?'Cadrage':stageTitle(r.length))+'</h3>'+r.map((m,i)=>'<div>'+m.card+(r.length>1?'<small>↳ Vers '+stages[j+1][Math.floor(i/2)].ref+'</small>':'')+'</div>').join('')+'</section>').join('');
  view.innerHTML='<h2>'+title+'</h2>'+courtBoard()+'<button id="finalScores">Saisir les résultats</button><div class="koBoard">'+bracket+'<svg aria-hidden="true"></svg></div><div class="koMobile">'+mobile+'</div>'+(stages.at(-1)[0].winnerName?'<h3>🏆 '+stages.at(-1)[0].winnerName+'</h3>':'');
  document.getElementById('finalScores').onclick=()=>{if(back)return back();s.finalPreview=false;save();draw();document.querySelector("[data-id^=r-]")?.scrollIntoView({block:'center'})};
  const board=view.querySelector('.koBoard'),svg=board.querySelector('svg');
@@ -323,7 +346,7 @@ function tournament(){
  for(const i of s.pools[j])html+='<p>'+team(i)+' · '+(t.wins[i]||0)+' V / '+(t.losses[i]||0)+' D'+(t.wins[i]===2?' · Qualifiée':t.losses[i]===2?' · Éliminée':'')+'</p>';
  t.games.forEach((g,k)=>{html+='<h3>'+g.title+'</h3>'+match(g,'p-'+j+'-'+k,!!g.v)});html+='</section>'});
  if(!s.rounds.length&&trees.every(t=>t.qualified.every(Number.isInteger)))html+='<button id="qual">Lancer la phase finale</button>';
- s.rounds.forEach((r,j)=>{html+='<section><h2>'+(r.length===1?'Finale':'Phase finale · tour '+(j+1))+'</h2>'+r.map((g,i)=>match(g,'r-'+j+'-'+i,!!g.v)).join('')+'</section>';if(j===s.rounds.length-1&&r.every(g=>g.b==null||g.v))html+=r.length===1?'<h2>🏆 '+team(winner(r[0]))+'</h2>':'<button id="next">Tour suivant</button>'});
+ s.rounds.forEach((r,j)=>{html+='<section><h2>'+(r[0]?.cadrage?'Cadrage':r.length===1?'Finale':'Phase finale · tour '+(j+1))+'</h2>'+r.map((g,i)=>match(g,'r-'+j+'-'+i,!!g.v)).join('')+'</section>';if(j===s.rounds.length-1&&r.every(g=>g.b==null||g.v))html+=r.length===1?'<h2>🏆 '+team(winner(r[0]))+'</h2>':'<button id="next">Tour suivant</button>'});
  view.innerHTML=(s.rounds.length?'<button id="showFinal">Revoir le tableau final</button> ':'')+'<button id="showDraw">Revoir le tirage</button>'+html+(eventComplete()?'<button type="button" data-archive="match">Archiver les résultats</button>':'')+'<hr><button id="reset">Nouveau concours</button>';
  if(s.rounds.length)document.getElementById('showFinal').onclick=()=>{s.finalPreview=true;save();draw()};
  document.getElementById('showDraw').onclick=()=>toggleDrawPreview(true);
@@ -360,9 +383,11 @@ function durationPlan(n,live){
  const capacity=unlimitedCourts()?Infinity:s.courtCount||1,stages=[];
  function add(stage,count){stages[stage]=(stages[stage]||0)+count}
  function knockout(count,start,rounds){
-  for(let j=0;count>1;j++,count=Math.ceil(count/2)){
+  for(let j=0;count>1;j++){
+   const current=rounds?.[j],base=2**Math.floor(Math.log2(count));
+   const next=current?.length||(!j && s.poolStyle!=='abc' && base<count?base:Math.ceil(count/2));
    const played=(rounds?.[j]||[]).filter(g=>g.v&&g.b!=null).length;
-   add(start+j,Math.max(0,Math.floor(count/2)-played))
+   add(start+j,Math.max(0,count-next-played));count=next
   }
  }
  if(s.poolStyle==='abc'){
@@ -397,7 +422,7 @@ function courtSchedule(){
  if(key!=='official-v1'||!s.courtCount)return null;
  const pending=new Map();
  const add=(g,id,title)=>{if(g.b!=null&&!g.v)pending.set(id,{g,title})};
- if(s.abc)abcRows().forEach(({g,id,title})=>add(g,id,title));else if(s.rounds.length)s.rounds.forEach((r,j)=>r.forEach((g,k)=>add(g,'r-'+j+'-'+k,(r.length===1?'Finale':'Phase finale · tour '+(j+1)))));
+ if(s.abc)abcRows().forEach(({g,id,title})=>add(g,id,title));else if(s.rounds.length)s.rounds.forEach((r,j)=>r.forEach((g,k)=>add(g,'r-'+j+'-'+k,(r[0]?.cadrage?'Cadrage':r.length===1?'Finale':'Phase finale · tour '+(j+1)))));
  else if(s.teams.length===2)add({a:0,b:1},'r-0-0','Finale');
  else s.pools.forEach((p,j)=>poolTree(p,s.games[j]).games.forEach((g,k)=>add(g,'p-'+j+'-'+k,'Poule '+poolLetter(j)+' · '+g.title)));
  const old=s.courts||{},ordered=[...new Set([...Object.keys(old),...pending.keys()])].filter(id=>pending.has(id));
@@ -476,6 +501,15 @@ async function startCamera(){
  }catch{if(token===cameraToken){stopCamera();status.textContent='Autorise la caméra puis appuie de nouveau sur Scanner, ou saisis le numéro.'}}
 }
 
+function draw(){
+ drawOrganizer();
+ if(!s.teams){
+  const label=document.createElement('label');
+  label.innerHTML='Saisie des résultats<select><option value="score">Score détaillé</option><option value="winner">Gagnant uniquement</option></select>';
+  const select=label.querySelector('select');select.value=s.resultMode||'score';
+  select.onchange=()=>{s.resultMode=select.value;save()};view.prepend(label)
+ }
+}
 draw()
 </script><script>
 const shotKey='dodoche-tir-1', stages=['Boule seule','Boule derrière un but','Boule entre deux boules','Boule derrière une boule','But seul'];
@@ -488,8 +522,8 @@ const archivePrefix='dodoche-archive-v1:';
 function eventReport(tir){
  const title=tir?'Tir de précision':key==='official-v1'?(s.openEntry?'Concours non officiel':'Concours officiel'):'Tournoi';
  const lines=[],names=id=>s.teams[id].join(' / ');
- function game(g,label){lines.push(label+' · '+names(g.a)+(g.b==null?' · Exemption':'  '+g.v.join(' – ')+'  '+names(g.b)))}
- function bracket(rs,label){rs.forEach((r,j)=>r.forEach(g=>game(g,label+' · '+(r.length===1?'Finale':'Tour '+(j+1)))))}
+ function game(g,label){lines.push(label+' · '+names(g.a)+(g.b==null?' · Exemption':' contre '+names(g.b)+' · '+resultText(g,names)))}
+ function bracket(rs,label){rs.forEach((r,j)=>r.forEach(g=>game(g,label+' · '+(g.cadrage?'Cadrage':r.length===1?'Finale':'Tour '+(j+1)))))}
  if(tir){
   const e=eventState,rows=e.scores.map((scores,j)=>({name:e.names?.[j]||'Joueur '+(j+1),scores,...summary(scores)})).sort((a,b)=>b.sum-a.sum||b.five-a.five||b.three-a.three);
   let rank=0;
@@ -566,10 +600,33 @@ function showMarathon(){
  host.innerHTML='<h2>Marathon</h2>';
  const rules='<details><summary>Règlement du marathon du club</summary><p>Une rencontre par équipe et par manche, sans poules. Tirage sans revanche avant la fin du cycle. À effectif impair, une équipe est exempte par manche (2 points, aucun point de jeu). Les exemptions tournent sur le cycle.</p><p>Victoire : 2 points. Nul : 1. Défaite : 0. En saisie rapide, les égalités de classement sont partagées. Avec scores, départage à la différence des points, puis aux points marqués.</p><p>À la fin du chrono, relever le score après la mène en cours. Une égalité est admise. Le dernier résultat déclenche le tirage suivant. Le chrono suivant démarre sur commande.</p></details>';
  if(!m){
- host.innerHTML+=rules+'<form id="marathonSetup"><label>Équipes · une par ligne<textarea name="names" rows="6" required></textarea></label><label>Nombre de manches<input name="turns" type="number" min="1" max="100" value="6" required></label><label>Durée par manche (minutes)<input name="minutes" type="number" min="1" max="240" value="45" required></label><label>Résultats<select name="method"><option value="quick">Choisir le gagnant ou le nul</option><option value="detail">Saisir les points des deux équipes</option></select></label><button>Lancer le tirage</button></form>';
- host.querySelector('form').onsubmit=e=>{e.preventDefault();const f=new FormData(e.target),names=String(f.get('names')).split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
- if(names.length<2||new Set(names).size!==names.length)return alert('Inscris au moins deux équipes avec des noms distincts.');
- marathon={id:'marathon-'+Date.now().toString(36),names,turns:+f.get('turns'),minutes:+f.get('minutes'),detail:f.get('method')==='detail',seed:shuffle(names.map((_,i)=>i)),remaining:[],rounds:[]};marathon.rounds.push(marathonDraw(marathon));saveMarathon()};return}
+ const draftKey=marathonKey+'-inscriptions';
+ const draft=JSON.parse(localStorage.getItem(draftKey)||'null')||{size:1,teams:[]};
+ let size=draft.size;
+ const teams=draft.teams;
+ const persistDraft=()=>localStorage.setItem(draftKey,JSON.stringify({size,teams}));
+ host.innerHTML+=rules+'<label>Format du marathon<select id="marFormat"><option value="1">Tête-à-tête</option><option value="2">Doublette</option><option value="3">Triplette</option></select></label><form id="marEntry"><div id="marPlayers"></div><button id="marAdd"></button></form><h3 id="marCount"></h3><ol id="marList"></ol><form id="marathonSetup"><label>Nombre de manches<input name="turns" type="number" min="1" max="100" value="6" required></label><label>Durée par manche (minutes)<input name="minutes" type="number" min="1" max="240" value="45" required></label><label>Résultats<select name="method"><option value="quick">Choisir le gagnant ou le nul</option><option value="detail">Saisir les points des deux équipes</option></select></label><button>Lancer le tirage</button></form>';
+ const format=host.querySelector('#marFormat'),entry=host.querySelector('#marEntry'),fields=host.querySelector('#marPlayers'),list=host.querySelector('#marList'),setup=host.querySelector('#marathonSetup');
+ function roster(){
+  list.replaceChildren();format.disabled=teams.length>0;
+  host.querySelector('#marCount').textContent=teams.length+(size===1?' joueur(s) inscrit(s)':' équipe(s) inscrite(s)');
+  teams.forEach((players,i)=>{const li=document.createElement('li'),remove=document.createElement('button');li.append(players.join(' / ')+' ');remove.type='button';remove.textContent='Retirer';remove.onclick=()=>{teams.splice(i,1);persistDraft();roster()};li.append(remove);list.append(li)});
+ }
+ function inputs(){
+  fields.replaceChildren();format.value=String(size);
+  for(let i=0;i<size;i++){const label=document.createElement('label'),input=document.createElement('input');label.textContent=size===1?'Nom du joueur':'Joueur '+(i+1);input.required=true;label.append(input);fields.append(label)}
+  host.querySelector('#marAdd').textContent=size===1?'Ajouter le joueur':'Ajouter l’équipe';roster()
+ }
+ format.onchange=()=>{size=Number(format.value);persistDraft();inputs()};
+ entry.onsubmit=e=>{e.preventDefault();const players=Array.from(fields.querySelectorAll('input'),el=>el.value.trim());
+  if(players.some(n=>!n))return alert('Renseigne chaque joueur.');
+  if(teams.some(t=>t.join(' / ')===players.join(' / ')))return alert('Cette inscription existe déjà.');
+  teams.push(players);persistDraft();entry.reset();roster();fields.querySelector('input').focus()
+ };inputs();
+ setup.onsubmit=e=>{e.preventDefault();if(Array.from(fields.querySelectorAll('input')).some(el=>el.value.trim()))return alert('Ajoute l’inscription en cours ou vide les champs avant le tirage.');
+ const f=new FormData(setup),names=teams.map(t=>t.join(' / '));
+ if(names.length<2)return alert(size===1?'Inscris au moins deux joueurs.':'Inscris au moins deux équipes.');
+ marathon={id:'marathon-'+Date.now().toString(36),names,format:size,turns:+f.get('turns'),minutes:+f.get('minutes'),detail:f.get('method')==='detail',seed:shuffle(names.map((_,i)=>i)),remaining:[],rounds:[]};marathon.rounds.push(marathonDraw(marathon));localStorage.removeItem(draftKey);saveMarathon()};return}
  const rows=marathonTable(m),last=m.rounds.length-1,finished=last+1===m.turns&&marathonDone(m.rounds[last]);
  function fixture(g){return g.a===null||g.b===null?m.names[g.a??g.b]+' · exemption':m.names[g.a]+' / '+m.names[g.b]+(g.v?' · '+(m.detail?g.v.join(' – '):g.v[0]===g.v[1]?'Nul':'Victoire de '+m.names[g.v[0]>g.v[1]?g.a:g.b]):'')}
  const ranking=rows.map(t=>t.rank+'. '+t.name+' · '+t.pts+' pts'+(m.detail?' · différence '+t.diff+' · '+t.total+' marqués':''));

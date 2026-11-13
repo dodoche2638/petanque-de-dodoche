@@ -1,6 +1,6 @@
 LA PETANQUE DE DODOCHE
-Historique des versions Android et Windows — jusqu’à la v26
-Édition du 11 novembre 2026
+Historique des versions Android et Windows — jusqu’à la v29
+Édition du 12 novembre 2026
 
 v1 — Détail de cette version non retrouvé.
 v2 — Détail de cette version non retrouvé.
@@ -57,3 +57,12 @@ v25 · Android et Windows — Bouton « Archiver les résultats » après la fin
 
 v26 · Android et Windows — Marathon sans poules, manches et chrono réglables,
      saisie du gagnant ou du score, classement et archives.
+
+v27 · Android et Windows
+Tournoi et Concours : choix entre score détaillé et gagnant uniquement avant le tirage. Le vainqueur peut être corrigé ou annulé. Les archives conservent le résultat choisi.
+
+v28 · Android et Windows
+Marathon : tête-à-tête, doublette ou triplette. Inscription et retrait des équipes une par une avant le tirage.
+
+v29 · Android et Windows
+Tournoi et Concours après poules : cadrage si nécessaire, accès direct au tour suivant pour les exemptes, tableau et estimation adaptés.

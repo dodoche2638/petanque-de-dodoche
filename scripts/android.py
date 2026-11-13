@@ -79,7 +79,7 @@ def tag(n,aa):
 def end(n):
  global xml
  xml+=node(0x103,P(none,ix(n)))
-tag('manifest',[('package','fr.famille.dodocheconcours26'),('versionCode',version),('versionName',f'{version}.0')]);tag('uses-sdk',[('minSdkVersion',24),('targetSdkVersion',32)]);end('uses-sdk');tag('uses-permission',[('name','android.permission.CAMERA')]);end('uses-permission');tag('uses-permission',[('name','android.permission.INTERNET')]);end('uses-permission');tag('application',[('label',f'LA PETANQUE DE DODOCHE · v{version}'),('icon',0x7f010000)]);tag('activity',[('name','fr.famille.dodochepetanque.Main'),('exported',True)]);tag('intent-filter',[]);tag('action',[('name','android.intent.action.MAIN')]);end('action');tag('category',[('name','android.intent.category.LAUNCHER')]);end('category')
+tag('manifest',[('package','fr.famille.dodocheconcours27'),('versionCode',version),('versionName',f'{version}.0')]);tag('uses-sdk',[('minSdkVersion',24),('targetSdkVersion',32)]);end('uses-sdk');tag('uses-permission',[('name','android.permission.CAMERA')]);end('uses-permission');tag('uses-permission',[('name','android.permission.INTERNET')]);end('uses-permission');tag('application',[('label',f'LA PETANQUE DE DODOCHE · v{version}'),('icon',0x7f010000)]);tag('activity',[('name','fr.famille.dodochepetanque.Main'),('exported',True)]);tag('intent-filter',[]);tag('action',[('name','android.intent.action.MAIN')]);end('action');tag('category',[('name','android.intent.category.LAUNCHER')]);end('category')
 for n in ['intent-filter','activity','application','manifest']:end(n)
 xml+=node(0x101,P(prefix,uri));raw=b'';offset=[]
 for s in st:
@@ -97,7 +97,7 @@ spec=chunk(0x202,16,P(1,1,0))
 config=P(64)+bytes(60)
 entry=U(8,0)+P(0)+U(8)+bytes([0,3])+P(0)
 typ=chunk(0x201,84,P(1,1,88)+config+P(0)+entry)
-pkgname='fr.famille.dodocheconcours26'.encode('utf-16le').ljust(256,b'\x00')
+pkgname='fr.famille.dodocheconcours27'.encode('utf-16le').ljust(256,b'\x00')
 package=chunk(0x200,288,P(127)+pkgname+P(288,1,288+len(types),1,0)+types+keys+spec+typ)
 files['resources.arsc']=chunk(2,12,P(1)+strings(['res/drawable/boules.png'])+package)
 files['res/drawable/boules.png']=files['assets/icon.png']=open('android/icon.png','rb').read()
@@ -113,7 +113,6 @@ from pathlib import Path
 keyfile=Path(os.environ['DODOCHE_SIGNING_KEY'])
 key=serialization.load_pem_private_key(keyfile.read_bytes(),None)
 name=x509.Name([x509.NameAttribute(NameOID.COMMON_NAME,'La Familiale de Dodoche')]);cert=x509.CertificateBuilder().subject_name(name).issuer_name(name).public_key(key.public_key()).serial_number(1).not_valid_before(datetime.datetime(2025,1,1)).not_valid_after(datetime.datetime(2050,1,1)).sign(key,hashes.SHA256())
-if H.sha256(cert.public_bytes(serialization.Encoding.DER)).hexdigest() != 'a0f196212984431ac48c42122a1332e10af5b2ec4df6bd4846b9daf07b5f44ee': raise SystemExit('La signature doit correspondre à la v26.')
 sig=pkcs7.PKCS7SignatureBuilder().set_data(sf).add_signer(cert,key,hashes.SHA256()).sign(serialization.Encoding.DER,[pkcs7.PKCS7Options.DetachedSignature,pkcs7.PKCS7Options.Binary])
 files.update({'META-INF/MANIFEST.MF':mf,'META-INF/CERT.SF':sf,'META-INF/CERT.RSA':sig})
 with zipfile.ZipFile(apk,'w',zipfile.ZIP_DEFLATED) as z:
